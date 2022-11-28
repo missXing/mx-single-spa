@@ -1,5 +1,5 @@
 import { Application, AppStatus } from '../types'
-import { apps } from './apps'
+import { appMaps } from '../utils/application'
 
 export default function registerApplication(app: Application) {
     if (typeof app.activeRule === 'string') {
@@ -7,8 +7,15 @@ export default function registerApplication(app: Application) {
         app.activeRule = (location = window.location) => location.pathname === path
     }
 
-    app.pageBody = ''
-    app.loadedURLs = []
-    app.status = AppStatus.BEFORE_BOOTSTRAP
-    apps.push(app)
+    app = {
+        ...app,
+        status: AppStatus.BEFORE_BOOTSTRAP,
+        pageBody: '',
+        loadedURLs: [],
+        scripts: [],
+        styles: [],
+        isFirstLoad: true,
+    }
+    
+    appMaps.set(app.name, app)
 }

@@ -1,19 +1,25 @@
-import { isPromise } from 'src/utils/utils'
+import { addStyles } from '../utils/dom'
 import { Application, AppStatus } from '../types'
+import { triggerAppHook } from '../utils/application'
 
 export default function mountApp(app: Application): Promise<any> {
-    app.status = AppStatus.BEFORE_MOUNT
-    // 加载子应用前赋值给挂载的 DOM
-    app.container.innerHTML = app.pageBody
-    
-    let result = (app as any).mount({ props: app.props, container: app.container })
-    if (!isPromise(result)) {
-        result = Promise.resolve(result)
+    triggerAppHook(app, 'beforeMount', AppStatus.BEFORE_MOUNT)
+
+    if (!app.isFirstLoad) {
+        // 重新加载子应用时恢复快照
+        app.sandbox.restoreWindowSnapshot()
+        app.sandbox.start()
+        app.container.innerHTML = app.pageBody
+        addStyles(app.styles)
+    } else {
+        app.isFirstLoad = false
     }
-    
-    return result
+
+    const result = (app as any).mount({ props: app.props, container: app.container })
+
+    return Promise.resolve(result)
     .then(() => {
-        app.status = AppStatus.MOUNTED
+        triggerAppHook(app, 'mounted', AppStatus.MOUNTED)
     })
     .catch((err: Error) => {
         app.status = AppStatus.MOUNT_ERROR

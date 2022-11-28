@@ -1,12 +1,15 @@
 import { Application, Source } from '../types'
 import { createElement, removeNode } from './dom'
+import { originalAppendChild } from './originalEnv'
+import { isFunction } from './utils'
 
 const urlReg = /^http(s)?:\/\//
 function isCorrectURL(url = '') {
     return urlReg.test(url)
 }
 
-export default function parseHTMLandLoadSources(app: Application) {
+export const globalLoadedURLs: string[] = []
+export function parseHTMLandLoadSources(app: Application) {
     // eslint-disable-next-line no-async-promise-executor
     return new Promise<void>(async (resolve, reject) => {
         const pageEntry = app.pageEntry
@@ -16,30 +19,24 @@ export default function parseHTMLandLoadSources(app: Application) {
     
         let html = ''
         try {
-            // 利用 ajax 请求子应用入口 URL 的内容，得到子应用的 HTML
             html = await loadSourceText(pageEntry) // load html
         } catch (error) {
             reject(error)
         }
         
-        // 将存储在字符串中的 XML 或 HTML 源代码解析为一个 DOM Document
         const domparser = new DOMParser()
         const doc = domparser.parseFromString(html, 'text/html')
-        // 递归遍历上面生成的 DOM 树，提取里面所有的 style script 标签
         const { scripts, styles } = extractScriptsAndStyles(doc as unknown as Element, app)
         
         // 提取了 script style 后剩下的 body 部分的 html 内容
-        // 将剩下的 body 部分的 HTML 内容赋值给子应用要挂载的 DOM 下
-        // 保存 HTML 代码
         app.pageBody = doc.body.innerHTML
 
         let isStylesDone = false, isScriptsDone = false
-        
+        // 加载 style script 的内容
         Promise.all(loadStyles(styles))
         .then(data => {
             isStylesDone = true
-            // 将所有 style 添加到 document.head 下
-            addStyles(data as string[])
+            app.styles = data as string[]
             if (isScriptsDone && isStylesDone) resolve()
         })
         .catch(err => reject(err))
@@ -47,15 +44,13 @@ export default function parseHTMLandLoadSources(app: Application) {
         Promise.all(loadScripts(scripts))
         .then(data => {
             isScriptsDone = true
-            // js 脚本代码则直接包在一个匿名函数内执行
-            executeScripts(data as string[])
+            app.scripts = data as string[]
             if (isScriptsDone && isStylesDone) resolve()
         })
         .catch(err => reject(err))
     })
 }
 
-export const globalLoadedURLs: string[] = []
 function extractScriptsAndStyles(node: Element, app: Application) {
     if (!node.children.length) return { scripts: [], styles: [] }
 
@@ -151,7 +146,7 @@ function loadStyles(styles: Source[]) {
                     rel: 'stylesheet',
                 })
 
-                head.appendChild(link)
+                originalAppendChild.call(head, link)
             } else {
                 const style = createElement('style', {
                     global: item.isGlobal,
@@ -159,7 +154,7 @@ function loadStyles(styles: Source[]) {
                     textContent: item.value,
                 })
 
-                head.appendChild(style)
+                originalAppendChild.call(head, style)
             }
 
             return
@@ -188,7 +183,7 @@ function loadScripts(scripts: Source[]) {
                 script.textContent = item.value
             }
 
-            head.appendChild(script)
+            originalAppendChild.call(head, script)
             return
         }
 
@@ -198,28 +193,38 @@ function loadScripts(scripts: Source[]) {
     .filter(Boolean)
 }
 
-export function executeScripts(scripts: string[]) {
+export function executeScripts(scripts: string[], app: Application) {
     try {
         scripts.forEach(code => {
-            // eslint-disable-next-line no-new-func
-            new Function('window', code).call(window, window)
+            // 如果子应用提供了 loader
+            if (isFunction(app.loader)) {
+                // @ts-ignore
+                code = app.loader(code)
+            }
+            
+            // ts 使用 with 会报错，所以需要这样包一下
+            // 将子应用的 js 代码全局 window 环境指向代理环境 proxyWindow
+            const warpCode = `
+                ;(function(proxyWindow){
+                    with (proxyWindow) {
+                        (function(window){${code}\n}).call(proxyWindow, proxyWindow)
+                    }
+                })(this);
+            `
+
+            new Function(warpCode).call(app.sandbox.proxyWindow)
         })
     } catch (error) {
         throw error
     }
 }
 
-export function addStyles(styles: string[] | HTMLStyleElement[]) {
-    styles.forEach(item => {
-        if (typeof item === 'string') {
-            const node = createElement('style', {
-                type: 'text/css',
-                textContent: item,
-            })
+export async function fetchStyleAndReplaceStyleContent(style: Node, url: string) {
+    const content = await loadSourceText(url)
+    style.textContent = content
+}
 
-            head.appendChild(node)
-        } else {
-            head.appendChild(item)
-        }
-    })
+export async function fetchScriptAndExecute(url: string, app: Application) {
+    const content = await loadSourceText(url)
+    executeScripts([content], app)
 }

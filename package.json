@@ -1,6 +1,6 @@
 {
   "name": "mx-single-spa",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "一个微前端demo",
   "main": "dist/mx-single-spa.cjs.js",
   "module": "dist/mx-single-spa.esm.js",
@@ -13,11 +13,13 @@
     "install:main": "cd examples/main && pnpm i",
     "install:react": "cd examples/react && pnpm i",
     "install:vue": "cd examples/vue && pnpm i",
-    "install:all": "run-p install:main install:react install:vue install:local",
+    "install:multiple": "cd examples/multiple && pnpm i",
+    "install:all": "run-p install:main install:react install:vue install:multiple install:local",
     "dev:main": "cd examples/main && pnpm dev",
     "dev:react": "cd examples/react && pnpm dev",
     "dev:vue": "cd examples/vue && pnpm dev",
-    "dev:all": "run-p dev:main dev:react dev:vue dev"
+    "dev:multiple": "cd examples/multiple && pnpm dev",
+    "dev:all": "run-p dev dev:react dev:vue dev:multiple dev:main"
   },
   "repository": {
     "type": "git",
@@ -39,16 +41,12 @@
     "src/**/*.{js,ts}": "eslint"
   },
   "devDependencies": {
-    "@babel/core": "^7.15.5",
-    "@babel/plugin-transform-runtime": "^7.15.0",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/runtime": "^7.16.7",
     "@rollup/plugin-commonjs": "^21.0.1",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^13.1.3",
     "@rollup/plugin-replace": "^3.0.1",
-    "@typescript-eslint/eslint-plugin": "^4.14.0",
-    "@typescript-eslint/parser": "^4.14.0",
+    "@typescript-eslint/eslint-plugin": "^5.11.0",
+    "@typescript-eslint/parser": "^5.11.0",
     "chalk": "^4.1.0",
     "eslint": "^7.2.0",
     "eslint-config-airbnb-base": "^14.2.0",
@@ -61,6 +59,6 @@
     "rollup": "^2.64.0",
     "rollup-plugin-typescript2": "^0.31.1",
     "rollup-plugin-uglify": "^6.0.4",
-    "typescript": "^4.1.3"
+    "typescript": "^4.5.5"
   }
 }

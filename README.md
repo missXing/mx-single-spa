@@ -1,17 +1,17 @@
 # mx-single-spa
 一个微前端demo
 
-## v2功能点
+## v3功能点
 
-- 支持不同框架的子应用
-- 支持微应用 HTML 入口
+- 隔离子应用 window 作用域
+- 隔离子应用元素作用域
   
 ## Examples
 所有示例均在 examples 目录下。
 
 ### 安装
 ```
-npm i mini-single-spa
+npm i mx-single-spa
 ```
 ### 运行 demo
 安装

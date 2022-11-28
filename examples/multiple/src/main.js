@@ -13,10 +13,9 @@ Vue.config.productionTip = false
 let router = null
 let app = null
 function render(options = {}) {
+    console.log(window.name)
     const { container } = options
     router = new VueRouter({
-        base: window.__IS_SINGLE_SPA__ ? '/vue' : '/',
-        mode: 'history',
         routes,
     })
     
@@ -25,8 +24,6 @@ function render(options = {}) {
         store,
         render: h => h(App),
     }).$mount(container ? container.querySelector('#app') : '#app')
-
-    console.log(window.name)
 }
 
 
