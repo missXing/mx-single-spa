@@ -1,8 +1,18 @@
+import parseHTMLandloadSources from 'src/utils/parseHTMLandloadSources'
 import { isPromise } from 'src/utils/utils'
 import { AnyObject, Application, AppStatus } from '../types'
 
-export default async function bootstrapApp(app: Application) {    
-    const { bootstrap, mount, unmount } = await app.loadApp()
+declare const window: any
+
+export default async function bootstrapApp(app: Application) {
+    try {
+        // 加载 js css
+        await parseHTMLandloadSources(app)
+    } catch (error) {
+        throw error
+    }
+    
+    const { bootstrap, mount, unmount } = await getLifeCycleFuncs(app.name)
 
     validateLifeCycleFunc('bootstrap', bootstrap)
     validateLifeCycleFunc('mount', mount)
@@ -11,15 +21,15 @@ export default async function bootstrapApp(app: Application) {
     app.bootstrap = bootstrap
     app.mount = mount
     app.unmount = unmount
-
+    
     try {
         app.props = await getProps(app.props)
     } catch (err) {
         app.status = AppStatus.BOOTSTRAP_ERROR
         throw err
     }
-
-    let result = (app as any).bootstrap(app.props)
+    
+    let result = (app as any).bootstrap({ props: app.props, container: app.container })
     if (!isPromise(result)) {
         result = Promise.resolve(result)
     }
@@ -44,4 +54,17 @@ function validateLifeCycleFunc(name: string, fn: any) {
     if (typeof fn !== 'function') {
         throw Error(`The "${name}" must be a function`)
     }
+}
+
+async function getLifeCycleFuncs(name: string) {
+    const result = window[`mx-single-spa-${name}`]
+    if (typeof result === 'function') {
+        return result()
+    }
+
+    if (typeof result === 'object') {
+        return result
+    }
+
+    throw Error(`The micro app must inject the lifecycle("bootstrap" "mount" "unmount") into window['mx-single-spa-${name}']`)
 }
