@@ -1,10 +1,9 @@
 # mx-single-spa
 一个微前端demo
 
-## v3功能点
+## v4功能点
 
-- 隔离子应用 window 作用域
-- 隔离子应用元素作用域
+- 支持子应用样式隔离
   
 ## Examples
 所有示例均在 examples 目录下。

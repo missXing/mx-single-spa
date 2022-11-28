@@ -1,6 +1,6 @@
 {
   "name": "mx-single-spa",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "一个微前端demo",
   "main": "dist/mx-single-spa.cjs.js",
   "module": "dist/mx-single-spa.esm.js",
